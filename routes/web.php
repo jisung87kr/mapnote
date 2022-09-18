@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\LocationController;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -17,8 +17,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::resource('/location', LocationController::class);
+
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    $locations = Auth::user()->locations->all();
+    return view('dashboard', compact('locations'));
 })->middleware(['auth'])->name('dashboard');
 
 require __DIR__.'/auth.php';
