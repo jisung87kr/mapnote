@@ -1,5 +1,33 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
+<style>
+    .overlay{
+        background: #fff;
+        padding: 15px !important;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+
+    .overlay .place_name{
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .overlay hr{
+        margin: 10px 0;
+    }
+
+    .btn-close,
+    .btn-save{
+        border: 1px solid #ccc;
+        padding: 3px 5px;
+        border-radius: 5px;
+    }
+
+    #pagination {margin:10px auto;text-align: center;}
+    #pagination a {display:inline-block;margin-right:10px;}
+    #pagination .on {font-weight: bold; cursor: default;color:#777;}
+</style>
 <x-guest-layout>
     <div id="app">
         <div class="relative left-0 top-o right-0 bottom-0 border-r border-gray-300 overflow-hidden">
@@ -32,8 +60,8 @@
                                 </button>
                             </div>
                         </div>
-                        <div>
-                            <div class="grid grid-cols-1 divide-y gap-10 overflow-auto h-full">
+                        <div class="overflow-auto h-full  pb-10">
+                            <div class="grid grid-cols-1 divide-y gap-10">
                                 <div v-for="place in places" :key="place.id" v-if="places">
                                     <a href="">
                                         <img src="https://via.placeholder.com/400x250" alt="" class="mb-3">
@@ -64,6 +92,7 @@
                                     </a>
                                 </div>
                             </div>
+                            <div id="pagination"></div>
                         </div>
                     </div>
                 </div>
@@ -80,9 +109,10 @@
         },
         data() {
           return {
-            keyword: 'Hello Vue!',
+            keyword: '춘천',
             navActive: false,
             places: [],
+            markers: [],
           }
         },
         methods: {
@@ -120,13 +150,12 @@
           placesSearchCB(data, status, pagination) {
             if (status === kakao.maps.services.Status.OK) {
               this.places = data;
-              console.log(data, status);
               // 정상적으로 검색이 완료됐으면
               // 검색 목록과 마커를 표출합니다
-              // displayPlaces(data);
+              this.displayPlaces(data);
 
               // 페이지 번호를 표출합니다
-              // displayPagination(pagination);
+              this.displayPagination(pagination);
 
             } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
 
@@ -139,6 +168,136 @@
               return;
 
             }
+          },
+          displayPlaces(places) {
+            var bounds = new kakao.maps.LatLngBounds();
+            // 지도에 표시되고 있는 마커를 제거합니다
+            this.removeMarker();
+
+            for ( var i=0; i<places.length; i++ ) {
+              // 마커를 생성하고 지도에 표시합니다
+              var placePosition = new kakao.maps.LatLng(places[i].y, places[i].x);
+              var marker = this.addMarker(placePosition, i, places[i]);
+              bounds.extend(placePosition);
+
+              (function(marker, place, _this) {
+                kakao.maps.event.addListener(marker, 'click', function(){
+                  // this.displayInfowindow(marker, place);
+                });
+
+                kakao.maps.event.addListener(marker, 'click', () => {
+                  _this.displayInfowindow(marker, place);
+                });
+              })(marker, places[i], this);
+            }
+
+            // 검색된 장소 위치를 기준으로 지도 범위를 재설정합니다
+            this.map.setBounds(bounds);
+          },
+          addMarker(position, idx, title) {
+            var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_number_blue.png', // 마커 이미지 url, 스프라이트 이미지를 씁니다
+              imageSize = new kakao.maps.Size(36, 37),  // 마커 이미지의 크기
+              imgOptions =  {
+                spriteSize : new kakao.maps.Size(36, 691), // 스프라이트 이미지의 크기
+                spriteOrigin : new kakao.maps.Point(0, (idx*46)+10), // 스프라이트 이미지 중 사용할 영역의 좌상단 좌표
+                offset: new kakao.maps.Point(13, 37) // 마커 좌표에 일치시킬 이미지 내에서의 좌표
+              },
+              markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imgOptions),
+              marker = new kakao.maps.Marker({
+                position: position, // 마커의 위치
+                image: markerImage,
+              });
+
+            marker.setMap(this.map); // 지도 위에 마커를 표출합니다
+            this.markers.push(marker);  // 배열에 생성된 마커를 추가합니다
+
+            return marker;
+          },
+          displayPagination(pagination) {
+            var paginationEl = document.getElementById('pagination'),
+              fragment = document.createDocumentFragment(),
+              i;
+
+            // 기존에 추가된 페이지번호를 삭제합니다
+            while (paginationEl.hasChildNodes()) {
+              paginationEl.removeChild (paginationEl.lastChild);
+            }
+
+            for (i=1; i<=pagination.last; i++) {
+              var el = document.createElement('a');
+              el.href = "#";
+              el.innerHTML = i;
+
+              if (i===pagination.current) {
+                el.className = 'on';
+              } else {
+                el.onclick = (function(i) {
+                  return function() {
+                    pagination.gotoPage(i);
+                  }
+                })(i);
+              }
+
+              fragment.appendChild(el);
+            }
+            paginationEl.appendChild(fragment);
+          },
+          removeMarker() {
+            for ( var i = 0; i < this.markers.length; i++ ) {
+              this.markers[i].setMap(null);
+            }
+            this.markers = [];
+          },
+          displayInfowindow(marker, place) {
+            // 커스텀 오버레이가 표시될 위치입니다
+            var content = '<div style="padding:5px;z-index:1;" class="overlay">';
+            content += '<div class="overlay-body">';
+            content += '<div class="place_name">'+ place.place_name +'</div>';
+            content += '<div>'+ place.address_name +'</div>';
+            content += '<div>'+ place.road_address_name +'</div>';
+            content += '<div>'+ place.phone +'</div>';
+            content += '</div>';
+            content += '<hr>';
+            content += '<div class="flex justify-between">';
+            content += '<div class="btn-close" title="닫기">닫기</div>';
+            content += '<div class="btn-save">저장</div>';
+            content += '</div>';
+            content += '</div>';
+
+            // 커스텀 오버레이를 생성합니다
+            var overlay = new kakao.maps.CustomOverlay({
+              position: marker.getPosition(),
+              content: content,
+              xAnchor: 0.3,
+              yAnchor: 0.91,
+              map: this.map,
+            });
+
+            document.querySelector('.btn-close').addEventListener('click', () => {
+              this.closeOverlay(overlay);
+            });
+
+            document.querySelector('.btn-save').addEventListener('click', () => {
+              this.storeLocation(marker, place);
+              this.closeOverlay(overlay);
+            });
+          },
+          closeOverlay(overlay) {
+            overlay.setMap(null);
+          },
+          storeLocation(marker, place) {
+            console.log(marker);
+            place.lat = place.y;
+            place.lng = place.x;
+            // axios.post('/location', place)
+            //   .then(function(response){
+            //     alert('저장 되었습니다.');
+            //     console.log(response);
+            //     window.location.reload();
+            //   })
+            //   .catch(function(response){
+            //     console.log(response);
+            //   });
           }
         },
       }).mount('#app')
