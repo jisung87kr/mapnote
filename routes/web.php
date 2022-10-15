@@ -14,7 +14,7 @@ use App\Http\Controllers\LocationController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('test');
 });
 
 Route::resource('/location', LocationController::class);

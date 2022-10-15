@@ -47,7 +47,7 @@
                             <li class="p-4">더보기</li>
                         </ul>
                     </div>
-                    <div class="p-5">
+                    <div class="p-5 w-full">
                         <div class="d-flex w-full relative border-2 border-green-500 rounded mb-5">
                             <input type="text" class="border-0 w-full focus:ring-0" v-model="keyword" placeholder="검색어 입력"
                            @keypress.enter="searchPlaces"
@@ -186,7 +186,7 @@
                 });
 
                 kakao.maps.event.addListener(marker, 'click', () => {
-                  _this.displayInfowindow(marker, place);
+                  const overlay = _this.displayInfowindow(marker, place);
                 });
               })(marker, places[i], this);
             }
@@ -259,8 +259,8 @@
             content += '</div>';
             content += '<hr>';
             content += '<div class="flex justify-between">';
-            content += '<div class="btn-close" title="닫기">닫기</div>';
-            content += '<div class="btn-save">저장</div>';
+            content += '<div class="btn-close" id="btn-close_'+place.id+'" title="닫기">닫기</div>';
+            content += '<div class="btn-save" id="btn-save_'+place.id+'">저장</div>';
             content += '</div>';
             content += '</div>';
 
@@ -273,14 +273,18 @@
               map: this.map,
             });
 
-            document.querySelector('.btn-close').addEventListener('click', () => {
-              this.closeOverlay(overlay);
+            document.querySelector('#btn-close_'+place.id).addEventListener('click', (e) => {
+              if(e.target && e.target.id == 'btn-close_'+place.id){
+                this.closeOverlay(overlay);
+              }
             });
 
-            document.querySelector('.btn-save').addEventListener('click', () => {
+            document.querySelector('#btn-save_'+place.id).addEventListener('click', () => {
               this.storeLocation(marker, place);
               this.closeOverlay(overlay);
             });
+
+            return overlay;
           },
           closeOverlay(overlay) {
             overlay.setMap(null);
@@ -289,15 +293,14 @@
             console.log(marker);
             place.lat = place.y;
             place.lng = place.x;
-            // axios.post('/location', place)
-            //   .then(function(response){
-            //     alert('저장 되었습니다.');
-            //     console.log(response);
-            //     window.location.reload();
-            //   })
-            //   .catch(function(response){
-            //     console.log(response);
-            //   });
+            axios.post('/location', place)
+              .then(function(response){
+                alert('저장 되었습니다.');
+                console.log(response);
+              })
+              .catch(function(response){
+                console.log(response);
+              });
           }
         },
       }).mount('#app')
