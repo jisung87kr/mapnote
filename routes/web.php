@@ -14,10 +14,13 @@ use App\Http\Controllers\LocationController;
 */
 
 Route::get('/', function () {
-    return view('test');
-});
+    return view('index');
+})->middleware(['auth']);
 
 Route::resource('/location', LocationController::class);
+Route::get('/location/get_user_place_id/{user}', [LocationController::class, 'getUserPlaceId']);
+Route::get('/location/get_user_location_by_place_id/{user}/{place_id}', [LocationController::class, 'getUserLocationByPlaceId']);
+Route::delete('/location/destroy_by_place_id/{user}/{place_id}', [LocationController::class, 'destroyByPlaceId']);
 
 Route::get('/dashboard', function () {
     $locations = Auth::user()->locations->all();

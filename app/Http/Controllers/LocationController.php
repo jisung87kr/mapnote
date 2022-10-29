@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Location;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class LocationController extends Controller
@@ -35,7 +36,9 @@ class LocationController extends Controller
      */
     public function store(Request $request)
     {
-        return $request->user()->locations()->create($request->all());
+        $validated = $request->all();
+        $validated['place_id'] = $validated['id'];
+        return $request->user()->locations()->create($validated);
     }
 
     /**
@@ -80,6 +83,22 @@ class LocationController extends Controller
      */
     public function destroy(Location $location)
     {
-        //
+        return $location->delete();
+    }
+
+    public function destroyByPlaceId(User $user, $placeId)
+    {
+        $location = $this->getUserLocationByPlaceId($user, $placeId);
+        return $location->delete();
+    }
+
+    public function getUserLocationByPlaceId(User $user, $placeId)
+    {
+        return $user->locations()->where('place_id', $placeId)->orderBy('id', 'desc')->first();
+    }
+
+    public function getUserPlaceId(User $user)
+    {
+        return $user->getPlaceIds();
     }
 }

@@ -23,6 +23,7 @@ class Location extends Model
         'road_address_name',
         'lat',
         'lng',
+        'place_id',
     ];
 
     public function user()

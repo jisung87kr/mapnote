@@ -46,4 +46,15 @@ class User extends Authenticatable
     {
         return $this->hasMany(Location::class);
     }
+
+    public function getPlaceIds()
+    {
+        return $this->locations->pluck('place_id')->toArray();
+    }
+
+    public function withPlaceId()
+    {
+        $this['placeId'] = $this->getPlaceIds();
+        return $this;
+    }
 }
