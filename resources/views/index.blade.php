@@ -70,7 +70,7 @@
                                         <img src="https://via.placeholder.com/400x250" alt="" class="mb-3">
                                         <div>
                                             <div class="mb-1 flex justify-between">
-                                                <div @click.prevent="openWindowInfo" class="cursor-pointer">
+                                                <div @click.prevent="openWindowInfo(place)" class="cursor-pointer">
                                                     <strong class="text-lg mr-2">@{{place.place_name}}</strong>
                                                     <small class="text-gray-500">@{{ place.category_group_name }}</small>
                                                 </div>
@@ -128,6 +128,7 @@
             places: [],
             markers: [],
             user: [],
+            overlay: [],
           }
         },
         methods: {
@@ -158,6 +159,8 @@
               alert('키워드를 입력해주세요!');
               return false;
             }
+
+            this.closeAllOverlay();
 
             // 장소검색 객체를 통해 키워드로 장소검색을 요청합니다
             this.ps.keywordSearch( keyword, this.placesSearchCB);
@@ -196,10 +199,6 @@
               bounds.extend(placePosition);
 
               (function(marker, place, _this) {
-                kakao.maps.event.addListener(marker, 'click', function(){
-                  // this.displayInfowindow(marker, place);
-                });
-
                 kakao.maps.event.addListener(marker, 'click', () => {
                   const overlay = _this.displayInfowindow(marker, place);
                 });
@@ -209,20 +208,28 @@
             // 검색된 장소 위치를 기준으로 지도 범위를 재설정합니다
             this.map.setBounds(bounds);
           },
-          addMarker(position, idx, title) {
-            var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_number_blue.png', // 마커 이미지 url, 스프라이트 이미지를 씁니다
-              imageSize = new kakao.maps.Size(36, 37),  // 마커 이미지의 크기
-              imgOptions =  {
-                spriteSize : new kakao.maps.Size(36, 691), // 스프라이트 이미지의 크기
-                spriteOrigin : new kakao.maps.Point(0, (idx*46)+10), // 스프라이트 이미지 중 사용할 영역의 좌상단 좌표
-                offset: new kakao.maps.Point(13, 37) // 마커 좌표에 일치시킬 이미지 내에서의 좌표
-              },
-              markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imgOptions),
-              marker = new kakao.maps.Marker({
+          makeMaker(position, idx){
+            var markerOpt = {
                 position: position, // 마커의 위치
-                image: markerImage,
-              });
+            }
 
+            if(idx >= 0){
+              var imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_number_blue.png';
+              var imageSize = new kakao.maps.Size(36, 37);
+              var imgOptions =  {
+                  spriteSize : new kakao.maps.Size(36, 691), // 스프라이트 이미지의 크기
+                  spriteOrigin : new kakao.maps.Point(0, (idx*46)+10), // 스프라이트 이미지 중 사용할 영역의 좌상단 좌표
+                  offset: new kakao.maps.Point(13, 37) // 마커 좌표에 일치시킬 이미지 내에서의 좌표
+              };
+              var markerImage = new kakao.maps.MarkerImage(imageSrc, imageSize, imgOptions);
+              markerOpt = Object.assign({}, markerOpt, {image: markerImage});
+            }
+
+            var marker = new kakao.maps.Marker(markerOpt);
+            return marker;
+          },
+          addMarker(position, idx, title) {
+            const marker = this.makeMaker(position, idx);
             marker.setMap(this.map); // 지도 위에 마커를 표출합니다
             this.markers.push(marker);  // 배열에 생성된 마커를 추가합니다
 
@@ -282,13 +289,17 @@
             content += '</div>';
 
             // 커스텀 오버레이를 생성합니다
+            var position = marker.getPosition();
             var overlay = new kakao.maps.CustomOverlay({
-              position: marker.getPosition(),
+              position: position,
               content: content,
               xAnchor: 0.3,
               yAnchor: 0.91,
               map: this.map,
             });
+
+            this.closeAllOverlay();
+            this.overlay.push(overlay);
 
             document.querySelector('#btn-close_'+place.id).addEventListener('click', (e) => {
               if(e.target && e.target.id == 'btn-close_'+place.id){
@@ -297,11 +308,17 @@
             });
 
             document.querySelector('#btn-save_'+place.id).addEventListener('click', () => {
-              this.storeLocation(marker, place);
+              this.storeLocation(place);
               this.closeOverlay(overlay);
             });
 
             return overlay;
+          },
+          closeAllOverlay(){
+            for (const key in this.overlay) {
+              this.overlay[key].setMap(null);
+            }
+            this.overlay = [];
           },
           closeOverlay(overlay) {
             overlay.setMap(null);
@@ -330,8 +347,12 @@
                 this.getUserPlaceIds();
               });
           },
-          openWindowInfo(){
-              console.log(this);
+          openWindowInfo(place){
+              const placePosition = new kakao.maps.LatLng(place.y, place.x);
+              const marker = this.makeMaker(placePosition);
+              const moveLatLon = new kakao.maps.LatLng(place.y, place.x);
+              this.displayInfowindow(marker, place);
+              this.map.setCenter(moveLatLon);
           },
           isFavorite(placeId){
             for (const key in this.user.placeId) {
