@@ -15,6 +15,7 @@
                             <li class="py-3">
                                 <div class="font-bold">{{ $location->place_name }}</div>
                                 <div class="text-gray-500">{{ $location->address_name }}</div>
+                                <div class="text-gray-900 mt-2">{{ $location->memo }}</div>
                             </li>
                             @endforeach
                         </ul>

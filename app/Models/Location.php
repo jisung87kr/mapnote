@@ -25,6 +25,7 @@ class Location extends Model
         'lat',
         'lng',
         'place_id',
+        'memo'
     ];
 
     protected $appends = ['x', 'y'];

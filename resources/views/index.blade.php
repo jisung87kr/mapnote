@@ -1,5 +1,6 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
     .overlay{
         background: #fff;
@@ -18,7 +19,7 @@
     }
 
     .btn-close,
-    .btn-save{
+    .btn-memo{
         border: 1px solid #ccc;
         padding: 3px 5px;
         border-radius: 5px;
@@ -111,7 +112,8 @@
     </div>
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ env('KAKAOMAP_APPKEY') }}&libraries=services"></script>
     <script type="module">
-      import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+      import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+
       createApp({
         mounted(){
           this.init();
@@ -300,7 +302,7 @@
             content += '<div class="flex justify-between">';
             content += '<div class="btn-close" id="btn-close_'+place.id+'" title="닫기">닫기</div>';
             if(this.user.id){
-              // content += '<div class="btn-save" id="btn-save_'+place.id+'">저장</div>';
+              content += '<div class="btn-memo" id="btn-memo_'+place.id+'">메모</div>';
             }
             content += '</div>';
             content += '</div>';
@@ -329,6 +331,10 @@
               this.closeOverlay(overlay);
             });
 
+            document.querySelector('#btn-memo_'+place.id).addEventListener('click', () => {
+              this.editMemo(place);
+            });
+
             return overlay;
           },
           closeAllOverlay(){
@@ -350,18 +356,25 @@
           storeLocation(place) {
             place.lat = place.y;
             place.lng = place.x;
-            console.log(place);
             axios.post('/location', place)
               .then( (response) => {
-                alert('저장 되었습니다.');
+                Swal.fire({
+                  icon: 'success',
+                  title: '저장완료',
+                  text: '저장 되었습니다',
+                });
                 this.getUserPlaceIds();
               });
           },
           destoryLocation(place) {
-            const placeId = place.place_id == undefined ? place.id : place.place_id;
+            const placeId = this.getPlaceId(place);
             axios.delete('/location/destroy_by_place_id/'+this.user.id+'/'+placeId)
               .then( (response) => {
-                alert('삭제 되었습니다.');
+                Swal.fire({
+                  icon: 'success',
+                  title: '삭제완료',
+                  text: '삭제 되었습니다',
+                });
                 this.getUserPlaceIds();
               });
           },
@@ -373,7 +386,7 @@
               this.map.setCenter(moveLatLon);
           },
           isFavorite(place){
-            const placeId = place.place_id == undefined ? place.id : place.place_id;
+            const placeId = this.getPlaceId(place);
             for (const key in this.user.placeId) {
                 if(this.user.placeId[key] == placeId){
                   return true;
@@ -393,6 +406,44 @@
               this.displayPlaces(this.places);
               this.pagination = false;
             });
+          },
+          getPlaceId(place){
+            return place.place_id == undefined ? place.id : place.place_id;
+          },
+          async fetchPlace(place){
+            const placeId = this.getPlaceId(place);
+            return await axios.get('/location/get_user_location_by_place_id/'+this.user.id+'/'+placeId);
+          },
+          async editMemo(place) {
+            const placeInfo = await this.fetchPlace(place);
+
+            const {value: text} = await Swal.fire({
+              input: 'textarea',
+              inputLabel: '메모입력',
+              inputValue: placeInfo.data.memo,
+              inputPlaceholder: '메모를 입력하세요',
+              inputAttributes: {
+                'aria-label': '메모를 입력하세요'
+              },
+              showCancelButton: true
+            });
+
+            if (text) {
+              place.lat = place.y;
+              place.lng = place.x;
+              place.memo = text;
+              axios.post('/location/edit_memo', place).then( response => {
+                if(response.data){
+                  this.getUserPlaceIds();
+                  this.closeAllOverlay();
+                  Swal.fire({
+                    icon: 'success',
+                    title: '입력완료',
+                    text: '입력완료!',
+                  });
+                }
+              });
+            }
           }
         },
       }).mount('#app')
