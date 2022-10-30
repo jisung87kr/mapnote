@@ -18,6 +18,14 @@ class LocationController extends Controller
         //
     }
 
+    public function userlocations(User $user)
+    {
+        return [
+            'list' => $user->locations,
+            'placeIds' => $user->getPlaceIds(),
+        ];
+    }
+
     /**
      * Show the form for creating a new resource.
      *
