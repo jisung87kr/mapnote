@@ -102,11 +102,28 @@ class LocationController extends Controller
 
     public function getUserLocationByPlaceId(User $user, $placeId)
     {
-        return $user->locations()->where('place_id', $placeId)->orderBy('id', 'desc')->first();
+        $result = $user->locations()->where('place_id', $placeId)->orderBy('id', 'desc')->first();
+        return $result;
     }
 
     public function getUserPlaceId(User $user)
     {
         return $user->getPlaceIds();
+    }
+
+    public function editMemo(Request $request)
+    {
+        $validated = $request->all();
+        $validated['place_id'] = isset($validated['place_id']) ? $validated['place_id'] : $validated['id'];
+
+        $location = $request->user()->locations()->where('place_id', $validated['place_id'])->first();
+
+        if($location){
+            $result = $location->update($validated);
+        } else {
+            $result = $request->user()->locations()->create($validated);
+        }
+
+        return $result;
     }
 }

@@ -22,6 +22,7 @@ Route::get('/location/user/{user}', [LocationController::class, 'userLocations']
 Route::get('/location/get_user_place_id/{user}', [LocationController::class, 'getUserPlaceId']);
 Route::get('/location/get_user_location_by_place_id/{user}/{place_id}', [LocationController::class, 'getUserLocationByPlaceId']);
 Route::delete('/location/destroy_by_place_id/{user}/{place_id}', [LocationController::class, 'destroyByPlaceId']);
+Route::post('/location/edit_memo', [LocationController::class, 'editMemo']);
 
 Route::get('/dashboard', function () {
     $locations = Auth::user()->locations->all();
