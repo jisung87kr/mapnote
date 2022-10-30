@@ -18,6 +18,12 @@ class LocationController extends Controller
         //
     }
 
+    public function getList()
+    {
+        $locations = Location::with('user')->groupBy('user_id')->latest()->paginate(20);
+        return view('location.list', compact('locations'));
+    }
+
     public function userlocations(User $user)
     {
         return [
@@ -109,6 +115,11 @@ class LocationController extends Controller
     public function getUserPlaceId(User $user)
     {
         return $user->getPlaceIds();
+    }
+
+    public function getUser(User $user)
+    {
+        return view('location.user', compact('user'));
     }
 
     public function editMemo(Request $request)

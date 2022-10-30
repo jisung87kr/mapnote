@@ -7,6 +7,7 @@
         padding: 15px !important;
         border-radius: 5px;
         font-size: 14px;
+        width: 200px;
     }
 
     .overlay .place_name{
@@ -51,6 +52,9 @@
                                 <a href="">홈</a>
                             </li>
                             <li class="p-4 cursor-pointer" @click="getUserLocations" v-if="user.id">즐겨찾기</li>
+                            <li class="p-4">
+                                <a href="{{ route('location.getList') }}">타임라인</a>
+                            </li>
                         </ul>
                     </div>
                     <div class="p-5 w-full">

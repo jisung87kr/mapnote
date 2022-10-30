@@ -17,6 +17,8 @@ Route::get('/', function () {
     return view('index');
 })->middleware(['auth']);
 
+Route::get('/location/list', [LocationController::class, 'getList'])->name('location.getList');
+Route::get('/location/list/{user}', [LocationController::class, 'getUser'])->name('location.getUser');
 Route::resource('/location', LocationController::class);
 Route::get('/location/user/{user}', [LocationController::class, 'userLocations']);
 Route::get('/location/get_user_place_id/{user}', [LocationController::class, 'getUserPlaceId']);
