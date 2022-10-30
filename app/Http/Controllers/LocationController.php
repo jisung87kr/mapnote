@@ -18,6 +18,14 @@ class LocationController extends Controller
         //
     }
 
+    public function userlocations(User $user)
+    {
+        return [
+            'list' => $user->locations,
+            'placeIds' => $user->getPlaceIds(),
+        ];
+    }
+
     /**
      * Show the form for creating a new resource.
      *
@@ -37,7 +45,7 @@ class LocationController extends Controller
     public function store(Request $request)
     {
         $validated = $request->all();
-        $validated['place_id'] = $validated['id'];
+        $validated['place_id'] = isset($validated['place_id']) ? $validated['place_id'] : $validated['id'];
         return $request->user()->locations()->create($validated);
     }
 

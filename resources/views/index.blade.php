@@ -35,7 +35,7 @@
     <div id="app">
         <div class="relative left-0 top-o right-0 bottom-0 border-r border-gray-300 overflow-hidden">
             <div id="map" class="w-full h-full"></div>
-            <div class="absolute left-0 top-0 bottom-0 bg-white h-full z-10 w-96 ease-in duration-150" :class="{'-translate-x-96': navActive}">
+            <div class="absolute left-0 top-0 bottom-0 bg-white h-full z-10 w-96 ease-in duration-150" :class="{'-translate-x-96': navActive}"  v-show="show">
                 <div class="absolute right-0 top-2/4 -translate-y-2/4 p3 bg-white rounded-r" style="width: 25px; right: -25px" @click="toggleNav">
                     <div class="flex align-middle justify-center">
                         <button class="py-5 btn-favorite">
@@ -45,9 +45,11 @@
                 </div>
                 <div class="flex items-stretch h-full">
                     <div class="shrink-0 border-r border-gray-300">
-                        <ul class="grid grid-cols-1 divide-y text-center">
-                            <li class="p-4">홈</li>
-                            <li class="p-4">더보기</li>
+                        <ul class="grid grid-cols-1 divide-y text-center w-24">
+                            <li class="p-4">
+                                <a href="">홈</a>
+                            </li>
+                            <li class="p-4 cursor-pointer" @click="getUserLocations" v-if="user.id">즐겨찾기</li>
                         </ul>
                     </div>
                     <div class="p-5 w-full">
@@ -74,7 +76,7 @@
                                                     <strong class="text-lg mr-2">@{{place.place_name}}</strong>
                                                     <small class="text-gray-500">@{{ place.category_group_name }}</small>
                                                 </div>
-                                                <button v-show="user.id" @click="toggleFavorite(place)" class="btn-favorite" :class="{active: isFavorite(place.id)}">
+                                                <button v-show="user.id" @click="toggleFavorite(place)" class="btn-favorite" :class="{active: isFavorite(place)}">
                                                     <i class="bi bi-bookmark"></i>
                                                 </button>
                                             </div>
@@ -100,7 +102,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div id="pagination"></div>
+                            <div id="pagination" v-if="pagination"></div>
                         </div>
                     </div>
                 </div>
@@ -113,16 +115,21 @@
       createApp({
         mounted(){
           this.init();
+          this.searchPlaces();
           axios.get('/api/user').then( (res) => {
             if(res.data){
-              this.user = res.data
+              this.user = res.data;
             }
           }).catch((res) => {
 
+          }).finally( () => {
+            this.show = true;
           });
         },
         data() {
           return {
+            show: false,
+            pagination: true,
             keyword: '춘천',
             navActive: false,
             places: [],
@@ -173,6 +180,7 @@
               this.displayPlaces(data);
 
               // 페이지 번호를 표출합니다
+              this.pagination = true;
               this.displayPagination(pagination);
 
             } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
@@ -274,7 +282,16 @@
             // 커스텀 오버레이가 표시될 위치입니다
             var content = '<div style="padding:5px;z-index:1;" class="overlay">';
             content += '<div class="overlay-body">';
-            content += '<div class="place_name">'+ place.place_name +'</div>';
+            content += '<div class="flex justify-between">';
+            content += '<div class=place_name >'+place.place_name+'</div>';
+            if(this.user.id){
+              const isFavorite = this.isFavorite(place);
+              const active = isFavorite ? 'active' : '';
+            content += '<button class="btn-favorite '+active+'" id="btn-save_'+place.id+'">';
+            content += '<i class="bi bi-bookmark"></i>';
+            content += "</button>";
+            }
+            content += '</div>';
             content += '<div>'+ place.address_name +'</div>';
             content += '<div>'+ place.road_address_name +'</div>';
             content += '<div>'+ place.phone +'</div>';
@@ -283,7 +300,7 @@
             content += '<div class="flex justify-between">';
             content += '<div class="btn-close" id="btn-close_'+place.id+'" title="닫기">닫기</div>';
             if(this.user.id){
-              content += '<div class="btn-save" id="btn-save_'+place.id+'">저장</div>';
+              // content += '<div class="btn-save" id="btn-save_'+place.id+'">저장</div>';
             }
             content += '</div>';
             content += '</div>';
@@ -308,7 +325,7 @@
             });
 
             document.querySelector('#btn-save_'+place.id).addEventListener('click', () => {
-              this.storeLocation(place);
+              this.toggleFavorite(place);
               this.closeOverlay(overlay);
             });
 
@@ -324,7 +341,7 @@
             overlay.setMap(null);
           },
           toggleFavorite(place){
-              if(this.isFavorite(place.id)){
+              if(this.isFavorite(place)){
                 this.destoryLocation(place);
               } else {
                 this.storeLocation(place);
@@ -341,7 +358,8 @@
               });
           },
           destoryLocation(place) {
-            axios.delete('/location/destroy_by_place_id/'+this.user.id+'/'+place.id)
+            const placeId = place.place_id == undefined ? place.id : place.place_id;
+            axios.delete('/location/destroy_by_place_id/'+this.user.id+'/'+placeId)
               .then( (response) => {
                 alert('삭제 되었습니다.');
                 this.getUserPlaceIds();
@@ -354,7 +372,8 @@
               this.displayInfowindow(marker, place);
               this.map.setCenter(moveLatLon);
           },
-          isFavorite(placeId){
+          isFavorite(place){
+            const placeId = place.place_id == undefined ? place.id : place.place_id;
             for (const key in this.user.placeId) {
                 if(this.user.placeId[key] == placeId){
                   return true;
@@ -364,9 +383,16 @@
           getUserPlaceIds(){
             axios.get('/location/get_user_place_id/'+this.user.id)
               .then( (response) => {
-                console.log(response);
                 this.user.placeId = response.data;
               } );
+          },
+          getUserLocations(){
+            axios.get('/location/user/'+this.user.id).then( response => {
+              this.places = response.data.list;
+              this.user.placeId = response.data.placeIds;
+              this.displayPlaces(this.places);
+              this.pagination = false;
+            });
           }
         },
       }).mount('#app')

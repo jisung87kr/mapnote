@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Location extends Model
 {
@@ -26,8 +27,24 @@ class Location extends Model
         'place_id',
     ];
 
+    protected $appends = ['x', 'y'];
+
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    protected function x(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value, $attributes) => $attributes['lng'],
+        );
+    }
+
+    protected function y(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value, $attributes) => $attributes['lat'],
+        );
     }
 }
